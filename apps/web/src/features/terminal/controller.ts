@@ -22,6 +22,8 @@ import type { ExitInfo, FailureInfo, LinkState, LinkSummary, Role, TerminalEvent
 const SUMMARY_MS = 250;
 const MAX_WEBGL = 8;
 const MAX_TITLE = 64;
+const INITIAL_REPLAY_IDLE_MS = 120;
+const INITIAL_REPLAY_MAX_MS = 2_000;
 
 const activeRenderers = new Set<WebglAddon>();
 
@@ -91,10 +93,18 @@ export class TerminalController {
   private lastRows = 0;
   private inputModifiers: TerminalModifiers = NO_TERMINAL_MODIFIERS;
   private onModifiersConsumed: (() => void) | null = null;
+  private replayIdleTimer: ReturnType<typeof setTimeout> | undefined;
+  private replayMaxTimer: ReturnType<typeof setTimeout> | undefined;
+  private replayPendingWrites = 0;
+  private replaySawOutput = false;
+  private replayDeadlineReached = false;
+  private replayReady = false;
 
   private constructor(container: HTMLElement, options: TerminalOptions) {
     this.container = container;
     this.events = options.events;
+    container.dataset.replay = "catching-up";
+    container.setAttribute("aria-busy", "true");
     this.term = new Terminal({
       fontFamily: options.settings.fontFamily,
       fontSize: options.settings.fontSize,
@@ -135,9 +145,38 @@ export class TerminalController {
       },
       onWrite: (bytes, ackEnd) => {
         this.offset = Math.max(this.offset, ackEnd);
-        this.term.write(bytes, () => this.attachment.consumed(ackEnd));
+        const initialReplay = !this.replayReady;
+        if (initialReplay) {
+          this.replaySawOutput = true;
+          this.replayPendingWrites += 1;
+          if (this.replayIdleTimer !== undefined) {
+            clearTimeout(this.replayIdleTimer);
+            this.replayIdleTimer = undefined;
+          }
+        }
+        this.term.write(bytes, () => {
+          this.attachment.consumed(ackEnd);
+          if (!initialReplay || this.replayReady) return;
+          this.replayPendingWrites = Math.max(0, this.replayPendingWrites - 1);
+          if (this.replayPendingWrites > 0) return;
+          if (this.replayDeadlineReached) {
+            this.finishInitialReplay();
+            return;
+          }
+          this.replayIdleTimer = setTimeout(
+            () => this.finishInitialReplay(),
+            INITIAL_REPLAY_IDLE_MS,
+          );
+        });
       },
       onGap: (availableStart) => {
+        if (!this.replayReady) {
+          this.replaySawOutput = true;
+          if (this.replayIdleTimer !== undefined) {
+            clearTimeout(this.replayIdleTimer);
+            this.replayIdleTimer = undefined;
+          }
+        }
         this.gapFrom = availableStart;
         this.term.write("\r\n");
         this.term.writeln(
@@ -200,6 +239,10 @@ export class TerminalController {
     this.observer.observe(container);
 
     this.summaryTimer = setInterval(() => this.emit(), SUMMARY_MS);
+    this.replayMaxTimer = setTimeout(() => {
+      this.replayDeadlineReached = true;
+      if (this.replayPendingWrites === 0) this.finishInitialReplay();
+    }, INITIAL_REPLAY_MAX_MS);
 
     void this.attachment.start();
   }
@@ -303,12 +346,27 @@ export class TerminalController {
     if (this.resizeFrame !== null) cancelAnimationFrame(this.resizeFrame);
     this.observer?.disconnect();
     clearInterval(this.summaryTimer);
+    clearTimeout(this.replayIdleTimer);
+    clearTimeout(this.replayMaxTimer);
     this.attachment.stop();
     this.term.dispose();
   }
 
   private emit(): void {
     if (!this.disposed) this.events.onSummary(this.snapshot());
+  }
+
+  private finishInitialReplay(): void {
+    if (this.disposed || this.replayReady || this.replayPendingWrites > 0) return;
+    this.replayReady = true;
+    clearTimeout(this.replayIdleTimer);
+    clearTimeout(this.replayMaxTimer);
+    this.replayIdleTimer = undefined;
+    this.replayMaxTimer = undefined;
+    if (this.replaySawOutput) this.term.clear();
+    this.container.dataset.replay = "ready";
+    this.container.setAttribute("aria-busy", "false");
+    this.term.refresh(0, this.term.rows - 1);
   }
 
   private fitPty(): void {

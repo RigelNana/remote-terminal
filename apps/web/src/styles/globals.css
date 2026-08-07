@@ -293,6 +293,11 @@ html[data-theme="hc"] {
   flex-grow: 1 !important;
 }
 
+/* Rebuild ANSI state off-screen, then reveal only the current viewport. */
+[data-terminal-host][data-replay="catching-up"] .xterm {
+  visibility: hidden;
+}
+
 /* Let coarse pointers pan the xterm scrollback without selecting terminal text. */
 @media (pointer: coarse) {
   [data-terminal-host] .xterm-viewport,
