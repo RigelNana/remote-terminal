@@ -22,6 +22,7 @@ import type { ExitInfo, FailureInfo, LinkState, LinkSummary, Role, TerminalEvent
 const SUMMARY_MS = 250;
 const MAX_WEBGL = 8;
 const MAX_TITLE = 64;
+const TOUCH_SCROLL_START_PX = 8;
 const INITIAL_REPLAY_MAX_MS = 5_000;
 
 const activeRenderers = new Set<WebglAddon>();
@@ -97,6 +98,17 @@ export class TerminalController {
   private replaySawOutput = false;
   private replayBoundaryReached = false;
   private replayReady = false;
+  private readonly touchAbort = new AbortController();
+  private touchScroll:
+    | {
+        pointerId: number;
+        startX: number;
+        startY: number;
+        lastY: number;
+        remainder: number;
+        active: boolean;
+      }
+    | undefined;
 
   private constructor(container: HTMLElement, options: TerminalOptions) {
     this.container = container;
@@ -222,6 +234,22 @@ export class TerminalController {
       });
     });
     this.observer.observe(container);
+    container.addEventListener("pointerdown", (event) => this.onTouchPointerDown(event), {
+      capture: true,
+      signal: this.touchAbort.signal,
+    });
+    container.addEventListener("pointermove", (event) => this.onTouchPointerMove(event), {
+      capture: true,
+      signal: this.touchAbort.signal,
+    });
+    container.addEventListener("pointerup", (event) => this.onTouchPointerEnd(event), {
+      capture: true,
+      signal: this.touchAbort.signal,
+    });
+    container.addEventListener("pointercancel", (event) => this.onTouchPointerEnd(event), {
+      capture: true,
+      signal: this.touchAbort.signal,
+    });
 
     this.summaryTimer = setInterval(() => this.emit(), SUMMARY_MS);
     this.replayMaxTimer = setTimeout(() => {
@@ -329,6 +357,7 @@ export class TerminalController {
     if (this.disposed) return;
     this.disposed = true;
     if (this.resizeFrame !== null) cancelAnimationFrame(this.resizeFrame);
+    this.touchAbort.abort();
     this.observer?.disconnect();
     clearInterval(this.summaryTimer);
     clearTimeout(this.replayMaxTimer);
@@ -349,6 +378,68 @@ export class TerminalController {
     this.container.dataset.replay = "ready";
     this.container.setAttribute("aria-busy", "false");
     this.term.refresh(0, this.term.rows - 1);
+  }
+  private onTouchPointerDown(event: PointerEvent): void {
+    if (
+      event.pointerType !== "touch" ||
+      !event.isPrimary ||
+      !(event.target instanceof Element) ||
+      event.target.closest(".scrollbar")
+    ) {
+      return;
+    }
+    this.touchScroll = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastY: event.clientY,
+      remainder: 0,
+      active: false,
+    };
+    this.container.setPointerCapture(event.pointerId);
+  }
+
+  private onTouchPointerMove(event: PointerEvent): void {
+    const touch = this.touchScroll;
+    if (!touch || event.pointerId !== touch.pointerId) return;
+    if (!touch.active) {
+      const distanceX = Math.abs(event.clientX - touch.startX);
+      const distanceY = Math.abs(event.clientY - touch.startY);
+      if (Math.max(distanceX, distanceY) < TOUCH_SCROLL_START_PX) return;
+      if (distanceY <= distanceX) {
+        this.finishTouchScroll(event.pointerId);
+        return;
+      }
+      touch.active = true;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    const screenHeight =
+      this.term.element?.querySelector<HTMLElement>(".xterm-screen")?.clientHeight ?? 0;
+    const rowHeight = Math.max(1, screenHeight / Math.max(1, this.term.rows));
+    touch.remainder += touch.lastY - event.clientY;
+    touch.lastY = event.clientY;
+    const lines = Math.trunc(touch.remainder / rowHeight);
+    if (lines === 0) return;
+    this.term.scrollLines(lines);
+    touch.remainder -= lines * rowHeight;
+  }
+
+  private onTouchPointerEnd(event: PointerEvent): void {
+    const touch = this.touchScroll;
+    if (!touch || event.pointerId !== touch.pointerId) return;
+    this.finishTouchScroll(event.pointerId);
+    if (!touch.active) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  private finishTouchScroll(pointerId: number): void {
+    if (this.container.hasPointerCapture(pointerId)) {
+      this.container.releasePointerCapture(pointerId);
+    }
+    this.touchScroll = undefined;
   }
 
   private fitPty(): void {

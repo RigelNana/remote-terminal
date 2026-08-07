@@ -298,16 +298,27 @@ html[data-theme="hc"] {
   visibility: hidden;
 }
 
-/* Let coarse pointers pan the xterm scrollback without selecting terminal text. */
+/* xterm 6 uses a virtual scrollbar and does not translate screen swipes itself. */
 @media (pointer: coarse) {
-  [data-terminal-host] .xterm-viewport,
-  [data-terminal-host] .xterm-screen {
-    touch-action: pan-y;
+  [data-terminal-host] .xterm-screen,
+  [data-terminal-host] .xterm-scrollable-element {
+    touch-action: none;
   }
 
-  [data-terminal-host] .xterm-viewport {
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
+  [data-terminal-host] .xterm-scrollable-element > .scrollbar.vertical {
+    width: 24px !important;
+    visibility: visible !important;
+    z-index: 20;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: none !important;
+  }
+
+  [data-terminal-host] .xterm-scrollable-element > .scrollbar.vertical > .slider {
+    width: 24px !important;
+    min-height: 44px;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 }
 
