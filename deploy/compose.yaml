@@ -1,0 +1,51 @@
+name: remote-terminal
+
+services:
+  relay:
+    image: remote-terminal-relay:0.1.0
+    restart: unless-stopped
+    environment:
+      RT_BIND: 0.0.0.0:8080
+      RT_DATABASE: sqlite:///data/remote-terminal.db
+      RT_ORIGIN: https://${RT_HOST}
+      RT_PUBLIC_URL: https://${RT_HOST}
+      RT_RP_ID: ${RT_HOST}
+      RT_RP_NAME: Remote Terminal
+      RT_COOKIE_SECURE: "true"
+      RUST_LOG: remote_relay=info,tower_http=info
+    volumes:
+      - relay_data:/data
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  web:
+    image: remote-terminal-web:0.1.0
+    restart: unless-stopped
+    depends_on:
+      relay:
+        condition: service_healthy
+    environment:
+      RT_HOST: ${RT_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  internal:
+
+volumes:
+  relay_data:
+  caddy_data:
+  caddy_config:

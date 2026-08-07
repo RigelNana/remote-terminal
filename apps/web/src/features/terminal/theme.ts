@@ -1,0 +1,90 @@
+import type { ITheme } from "@xterm/xterm";
+
+/** Observatory ANSI palette per concrete theme. */
+const PALETTES: Record<"dark" | "light" | "hc", string[]> = {
+  dark: [
+    "#0e131c",
+    "#ff7a7a",
+    "#6fe3a3",
+    "#ffb454",
+    "#7cc7ff",
+    "#d9a8ff",
+    "#6fd7d2",
+    "#e8edf5",
+    "#7a87a0",
+    "#ff9d9d",
+    "#9af0c0",
+    "#ffcd8a",
+    "#a3d8ff",
+    "#e6c2ff",
+    "#9feae6",
+    "#ffffff",
+  ],
+  light: [
+    "#23272e",
+    "#c23636",
+    "#1f7a4d",
+    "#966500",
+    "#1668b5",
+    "#8a3fb5",
+    "#0f7d76",
+    "#f2efe8",
+    "#737c8c",
+    "#a03a3a",
+    "#2e8f5c",
+    "#b57b10",
+    "#1a5f9e",
+    "#9c4fc0",
+    "#1a8f87",
+    "#ffffff",
+  ],
+  hc: [
+    "#000000",
+    "#ff6b6b",
+    "#4cffa0",
+    "#ffd166",
+    "#66b7ff",
+    "#e28cff",
+    "#5ce6dc",
+    "#ffffff",
+    "#9a9a9a",
+    "#ff9d9d",
+    "#8affbb",
+    "#ffe08a",
+    "#8cc9ff",
+    "#efb4ff",
+    "#9ff2ea",
+    "#ffffff",
+  ],
+};
+
+/** Build an xterm theme from the applied CSS variables. */
+export function terminalTheme(theme: "dark" | "light" | "hc"): ITheme {
+  const styles = getComputedStyle(document.documentElement);
+  const read = (name: string): string => styles.getPropertyValue(name).trim();
+  const colors = PALETTES[theme];
+  return {
+    background: read("--bg") || "#0a0e14",
+    foreground: read("--ink") || "#e8edf5",
+    cursor: read("--accent") || "#7cc7ff",
+    cursorAccent: read("--bg") || "#0a0e14",
+    selectionBackground: read("--selection") || "rgba(124,199,255,0.28)",
+    selectionInactiveBackground: read("--line2") || "rgba(148,166,196,0.28)",
+    black: colors[0]!,
+    red: colors[1]!,
+    green: colors[2]!,
+    yellow: colors[3]!,
+    blue: colors[4]!,
+    magenta: colors[5]!,
+    cyan: colors[6]!,
+    white: colors[7]!,
+    brightBlack: colors[8]!,
+    brightRed: colors[9]!,
+    brightGreen: colors[10]!,
+    brightYellow: colors[11]!,
+    brightBlue: colors[12]!,
+    brightMagenta: colors[13]!,
+    brightCyan: colors[14]!,
+    brightWhite: colors[15]!,
+  };
+}

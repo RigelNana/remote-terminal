@@ -1,0 +1,317 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono-Medium.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 500 600;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono-Bold.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono-Italic.woff2") format("woff2");
+  font-display: swap;
+  font-style: italic;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url("/fonts/SymbolsNerdFontMono-Regular.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+/*
+ * REMOTE TERMINAL — observatory control room
+ *
+ * THESIS: the browser is an instrument console tracking a machine at home
+ * over a relay you own; the terminal is the eyepiece. The category default we
+ * refuse is the "dark developer tool" — black, neon-green glow, generic SaaS
+ * chrome. Ours is a warm-room night console: deep blue-black rack faces,
+ * hairline panel seams, silkscreen micro-labels, tabular register readouts,
+ * and status lamps that mean something (tracking / slewing / parked / lost).
+ *
+ * OWN-WORLD: night console dark is the committed scene (ops at night); light
+ * is the day-logbook variant, high-contrast is the accessible variant. One
+ * ice accent owns interaction; green/amber/red own instrument state only.
+ * JetBrains Mono (self-hosted) is for data — offsets, RTT, ids — never as a
+ * costume.
+ *
+ * INSTRUMENTS: device = tracked instrument; session = active observation;
+ * attachment = eyepiece; relay = the dome link. Status lamps: lit green =
+ * tracking, blinking amber = acquiring/reconnecting, unlit = parked, red = fault.
+ *
+ * STATES: state lives in lamps and readouts, not in color alone — every lamp
+ * has a text label, every readout a unit.
+ */
+
+:root {
+  --bg: #0a0e14;
+  --panel: #0e131c;
+  --panel2: #131a26;
+  --panel3: #1a2330;
+  --line: rgb(148 166 196 / 0.14);
+  --line2: rgb(148 166 196 / 0.28);
+  --ink: #e8edf5;
+  --ink2: #a9b5c8;
+  --ink3: #7a87a0;
+  --accent: #7cc7ff;
+  --accent2: #a3d8ff;
+  --ok: #6fe3a3;
+  --warn: #ffb454;
+  --bad: #ff7a7a;
+  --lamp-off: rgb(122 135 160 / 0.35);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 12px rgb(0 0 0 / 0.28);
+  --shadow-pop: 0 2px 4px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.45);
+  --radius-panel: 12px;
+  --radius-control: 6px;
+  --radius-dialog: 14px;
+  --selection: rgb(124 199 255 / 0.28);
+}
+
+html[data-theme="light"] {
+  --bg: #f2efe8;
+  --panel: #faf8f3;
+  --panel2: #ffffff;
+  --panel3: #eae6db;
+  --line: rgb(70 60 40 / 0.14);
+  --line2: rgb(70 60 40 / 0.3);
+  --ink: #23272e;
+  --ink2: #525a68;
+  --ink3: #737c8c;
+  --accent: #1668b5;
+  --accent2: #0d4f8f;
+  --ok: #1f7a4d;
+  --warn: #966500;
+  --bad: #c23636;
+  --lamp-off: rgb(115 124 140 / 0.4);
+  --shadow-raised: 0 1px 2px rgb(50 40 20 / 0.08), 0 4px 12px rgb(50 40 20 / 0.06);
+  --shadow-pop: 0 2px 4px rgb(50 40 20 / 0.1), 0 12px 32px rgb(50 40 20 / 0.12);
+  --selection: rgb(22 104 181 / 0.2);
+}
+
+html[data-theme="hc"] {
+  --bg: #000000;
+  --panel: #0b0b0b;
+  --panel2: #121212;
+  --panel3: #1c1c1c;
+  --line: rgb(255 255 255 / 0.4);
+  --line2: rgb(255 255 255 / 0.7);
+  --ink: #ffffff;
+  --ink2: #e8e8e8;
+  --ink3: #c9c9c9;
+  --accent: #66b7ff;
+  --accent2: #a0d4ff;
+  --ok: #4cffa0;
+  --warn: #ffd166;
+  --bad: #ff6b6b;
+  --lamp-off: rgb(201 201 201 / 0.5);
+  --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.25);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.45), 0 8px 24px rgb(0 0 0 / 0.9);
+  --selection: rgb(102 183 255 / 0.45);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel2);
+  --color-panel3: var(--panel3);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-ink3: var(--ink3);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent2);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-panel: var(--radius-panel);
+  --radius-control: var(--radius-control);
+  --radius-dialog: var(--radius-dialog);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-pop: var(--shadow-pop);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    color-scheme: dark;
+    background: var(--bg);
+  }
+
+  html[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  html[data-theme="hc"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--selection);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line2) transparent;
+  }
+}
+
+@utility hairline-t {
+  border-top: 1px solid var(--line);
+}
+@utility hairline-b {
+  border-bottom: 1px solid var(--line);
+}
+@utility hairline-x {
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+/* Instrument status lamp: state must be readable from shape + label, not color alone. */
+@keyframes rt-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes rt-acquire {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.62);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rt-bell {
+  0% {
+    box-shadow: inset 0 0 0 0 rgb(124 199 255 / 0);
+  }
+  30% {
+    box-shadow: inset 0 0 0 2px rgb(124 199 255 / 0.7);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgb(124 199 255 / 0);
+  }
+}
+
+.rt-bell {
+  animation: rt-bell 0.3s ease-out;
+}
+
+@utility lamp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: none;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+
+@utility lamp-blink {
+  animation: rt-blink 1.1s ease-in-out infinite;
+}
+
+@utility lamp-pulse {
+  animation: rt-acquire 1.4s ease-in-out infinite;
+}
+
+/* Register readouts: real measurement, tabular figures, uppercase silkscreen label. */
+@utility readout {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+@utility silkscreen {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Zoom a split pane in place so xterm, its socket, and its screen buffer stay mounted. */
+[data-panel][data-zoom-hidden="true"],
+[data-separator][data-zoom-hidden="true"] {
+  display: none !important;
+}
+
+[data-panel][data-zoom-target="true"] {
+  flex-basis: 100% !important;
+  flex-grow: 1 !important;
+}
+
+/* Let coarse pointers pan the xterm scrollback without selecting terminal text. */
+@media (pointer: coarse) {
+  [data-terminal-host] .xterm-viewport,
+  [data-terminal-host] .xterm-screen {
+    touch-action: pan-y;
+  }
+
+  [data-terminal-host] .xterm-viewport {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

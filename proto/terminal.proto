@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package remote.v1;
+
+message Envelope {
+  uint32 version = 1;
+  string session = 2;
+
+  oneof body {
+    Hello hello = 10;
+    Open open = 11;
+    Ready ready = 12;
+    Attach attach = 13;
+    Input input = 14;
+    Output output = 15;
+    Resize resize = 16;
+    Ack ack = 17;
+    Gap gap = 18;
+    Role role = 19;
+    Exit exit = 20;
+    Failure failure = 21;
+    Ping ping = 22;
+    Pong pong = 23;
+    Kill kill = 24;
+    Detach detach = 25;
+  }
+}
+
+message Profile {
+  string id = 1;
+  string name = 2;
+  string shell = 3;
+  string cwd = 4;
+}
+
+message Hello {
+  string device = 1;
+  string agent = 2;
+  string platform = 3;
+  repeated Profile profiles = 4;
+}
+
+message Size {
+  uint32 cols = 1;
+  uint32 rows = 2;
+  uint32 pixel_width = 3;
+  uint32 pixel_height = 4;
+}
+
+message Open {
+  string profile = 1;
+  string cwd = 2;
+  Size size = 3;
+  string ticket = 4;
+}
+
+message Ready {
+  string profile = 1;
+  Size size = 2;
+  uint64 start = 3;
+  uint32 pid = 4;
+}
+
+message Attach {
+  string attach = 1;
+  uint64 from = 2;
+  bool control = 3;
+}
+message Detach {
+  string attach = 1;
+}
+
+
+message Input {
+  string attach = 1;
+  uint64 sequence = 2;
+  bytes data = 3;
+}
+
+message Output {
+  string target = 1;
+  uint64 start = 2;
+  uint64 end = 3;
+  bytes data = 4;
+}
+
+message Resize {
+  string attach = 1;
+  Size size = 2;
+}
+
+message Ack {
+  string attach = 1;
+  uint64 end = 2;
+}
+
+message Gap {
+  string target = 1;
+  uint64 available_start = 2;
+  uint64 requested_start = 3;
+}
+
+message Role {
+  string attach = 1;
+  bool control = 2;
+  int64 lease_expires = 3;
+}
+
+message Exit {
+  int32 code = 1;
+  string signal = 2;
+  string reason = 3;
+  uint64 end = 4;
+}
+
+message Failure {
+  string code = 1;
+  bool retryable = 2;
+  string detail = 3;
+}
+
+message Ping {
+  uint64 nonce = 1;
+}
+
+message Pong {
+  uint64 nonce = 1;
+}
+
+message Kill {
+  bool force = 1;
+}

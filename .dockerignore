@@ -1,0 +1,11 @@
+.git
+.github
+.impeccable
+.agents
+target
+apps/web/node_modules
+apps/web/dist
+**/.DS_Store
+**/*.log
+**/*.sqlite
+**/*.sqlite3

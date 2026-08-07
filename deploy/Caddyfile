@@ -1,0 +1,32 @@
+{$RT_HOST} {
+	encode zstd gzip
+
+	header {
+		-Server
+		Content-Security-Policy "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:"
+		Cross-Origin-Opener-Policy "same-origin"
+		Permissions-Policy "clipboard-read=(self), clipboard-write=(self), publickey-credentials-create=(self), publickey-credentials-get=(self)"
+		Referrer-Policy "no-referrer"
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+
+	@assets path /assets/* /fonts/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	handle /v1/* {
+		reverse_proxy relay:8080
+	}
+
+	handle /health/* {
+		reverse_proxy relay:8080
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		header /index.html Cache-Control "no-cache"
+		file_server
+	}
+}
