@@ -4,8 +4,8 @@
 import { create } from "@bufbuild/protobuf";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { decodeFrame, encodeFrame } from "@/protocol/codec";
-import { PongSchema } from "@/protocol/gen/terminal_pb";
+import { encodeFrame } from "@/protocol/codec";
+import { OutputSchema, SnapshotSchema } from "@/protocol/gen/terminal_pb";
 import { Attachment, type AttachmentEvents } from "./attachment";
 
 class FakeWebSocket {
@@ -56,8 +56,8 @@ class FakeWebSocket {
 function attachmentEvents(): AttachmentEvents {
   return {
     onRole: vi.fn(),
+    onSnapshot: vi.fn(),
     onWrite: vi.fn(),
-    onReplayComplete: vi.fn(),
     onGap: vi.fn(),
     onExit: vi.fn(),
     onFailure: vi.fn(),
@@ -67,15 +67,14 @@ function attachmentEvents(): AttachmentEvents {
   };
 }
 
-describe("Attachment replay boundary", () => {
+describe("Attachment current-screen synchronization", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_800_000_000_000);
+    vi.useRealTimers();
     FakeWebSocket.instances = [];
     vi.stubGlobal("WebSocket", FakeWebSocket);
   });
 
-  it("signals replay completion only after the Agent echoes the attach-ordered ping", async () => {
+  it("drops output before the snapshot and forwards only bytes after its offset", async () => {
     const events = attachmentEvents();
     const attachment = new Attachment(
       "session-a",
@@ -92,19 +91,49 @@ describe("Attachment replay boundary", () => {
     expect(socket).toBeDefined();
     socket!.open();
 
-    const ping = decodeFrame(socket!.sent[0]!);
-    expect(ping.body?.case).toBe("ping");
-    const nonce = ping.body?.case === "ping" ? ping.body.value.nonce : 0n;
-    expect(events.onReplayComplete).not.toHaveBeenCalled();
-
     socket!.receive(
       encodeFrame("session-a", {
-        case: "pong",
-        value: create(PongSchema, { nonce }),
+        case: "output",
+        value: create(OutputSchema, {
+          start: 0n,
+          end: 10_000n,
+          data: new TextEncoder().encode("old journal"),
+        }),
       }),
     );
+    expect(events.onWrite).not.toHaveBeenCalled();
 
-    expect(events.onReplayComplete).toHaveBeenCalledOnce();
+    const screen = new TextEncoder().encode("current screen");
+    socket!.receive(
+      encodeFrame("session-a", {
+        case: "snapshot",
+        value: create(SnapshotSchema, {
+          target: "attach-a",
+          end: 10_000n,
+          data: screen,
+        }),
+      }),
+    );
+    expect(events.onSnapshot).toHaveBeenCalledOnce();
+    const [snapshotBytes, snapshotEnd] = vi.mocked(events.onSnapshot).mock.calls[0]!;
+    expect(Array.from(snapshotBytes)).toEqual(Array.from(screen));
+    expect(snapshotEnd).toBe(10_000);
+
+    const live = new TextEncoder().encode("live");
+    socket!.receive(
+      encodeFrame("session-a", {
+        case: "output",
+        value: create(OutputSchema, {
+          start: 10_000n,
+          end: 10_004n,
+          data: live,
+        }),
+      }),
+    );
+    expect(events.onWrite).toHaveBeenCalledOnce();
+    const [liveBytes, liveEnd] = vi.mocked(events.onWrite).mock.calls[0]!;
+    expect(Array.from(liveBytes)).toEqual(Array.from(live));
+    expect(liveEnd).toBe(10_004);
     attachment.stop();
   });
 });

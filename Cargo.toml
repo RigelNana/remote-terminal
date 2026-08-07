@@ -45,5 +45,6 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 url = { version = "2.5.7", features = ["serde"] }
 uuid = { version = "1.19.0", features = ["serde", "v7"] }
+vt100 = "0.16.2"
 webauthn-rs = "0.5.5"
 zeroize = "1.8.2"

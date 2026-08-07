@@ -20,10 +20,10 @@ type SendBody = Extract<Body, { case: string }>;
 
 export interface AttachmentEvents {
   onRole: (role: Role) => void;
-  /** Bytes for this terminal; `ackEnd` is the stream offset to acknowledge. */
+  /** The Agent's current screen and the journal offset captured with it. */
+  onSnapshot: (bytes: Uint8Array, end: number) => void;
+  /** Live bytes after the current-screen snapshot. */
   onWrite: (bytes: Uint8Array, ackEnd: number) => void;
-  /** The Agent processed the attach replay and every preceding output frame. */
-  onReplayComplete: () => void;
   onGap: (availableStart: number, requestedStart: number) => void;
   onExit: (exit: ExitInfo) => void;
   onFailure: (failure: FailureInfo) => void;
@@ -48,18 +48,14 @@ export class Attachment {
   private attempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
-  private replayNonce: bigint | null = null;
+  private snapshotEnd: number | null = null;
   private bytesThisSecond = 0;
   private lastThroughput = Date.now();
   private readonly session: string;
-  private readonly reissue: (from: number) => Promise<AttachGrant>;
+  private readonly reissue: () => Promise<AttachGrant>;
   private readonly events: AttachmentEvents;
 
-  constructor(
-    session: string,
-    reissue: (from: number) => Promise<AttachGrant>,
-    events: AttachmentEvents,
-  ) {
+  constructor(session: string, reissue: () => Promise<AttachGrant>, events: AttachmentEvents) {
     this.session = session;
     this.reissue = reissue;
     this.events = events;
@@ -75,7 +71,7 @@ export class Attachment {
     this.clearTimers();
     const ws = this.ws;
     this.ws = null;
-    this.replayNonce = null;
+    this.snapshotEnd = null;
     if (ws && ws.readyState <= WebSocket.OPEN) {
       ws.close(1000, "client detach");
     }
@@ -126,7 +122,7 @@ export class Attachment {
     if (this.stopped) return;
     this.events.onState(this.attempt === 0 ? "connecting" : "reconnecting", this.attempt);
     try {
-      this.grant = await this.reissue(this.ackOffset);
+      this.grant = await this.reissue();
     } catch (error) {
       if (error instanceof ApiError && !error.retryable) {
         this.events.onFailure({
@@ -153,16 +149,11 @@ export class Attachment {
       const ws = new WebSocket(wsUrl.toString(), PROTOCOL);
       this.ws = ws;
       ws.binaryType = "arraybuffer";
+      this.snapshotEnd = null;
       ws.addEventListener("open", () => {
         this.attempt = 0;
         this.events.onState("connected", 0);
         this.startTimers();
-        const replayNonce = BigInt(Date.now());
-        this.replayNonce = replayNonce;
-        this.sendFrame({
-          case: "ping",
-          value: create(PingSchema, { nonce: replayNonce }),
-        });
       });
       ws.addEventListener("message", (event) => this.onMessage(event));
       ws.addEventListener("close", () => this.onClosed());
@@ -199,13 +190,28 @@ export class Attachment {
         this.events.onRole(this.role);
         break;
       }
+      case "snapshot": {
+        const snapshot = body.value;
+        if (snapshot.target === this.attachId) {
+          const end = Number(snapshot.end);
+          this.snapshotEnd = end;
+          this.ackOffset = Math.max(this.ackOffset, end);
+          this.events.onSnapshot(snapshot.data as Uint8Array, end);
+        }
+        break;
+      }
       case "output": {
         const output = body.value;
+        if (this.snapshotEnd === null) break;
         if (output.target === "" || output.target === this.attachId) {
-          const outputBytes = output.data as Uint8Array;
           const end = Number(output.end);
-          this.bytesThisSecond += outputBytes.byteLength;
-          this.events.onWrite(outputBytes, end);
+          if (end <= this.snapshotEnd) break;
+          const start = Number(output.start);
+          const outputBytes = output.data as Uint8Array;
+          const liveBytes =
+            start < this.snapshotEnd ? outputBytes.slice(this.snapshotEnd - start) : outputBytes;
+          this.bytesThisSecond += liveBytes.byteLength;
+          this.events.onWrite(liveBytes, end);
         }
         break;
       }
@@ -240,10 +246,6 @@ export class Attachment {
       }
       case "pong": {
         const nonce = body.value.nonce;
-        if (nonce === this.replayNonce) {
-          this.replayNonce = null;
-          this.events.onReplayComplete();
-        }
         if (nonce > 0) {
           this.events.onRtt(Math.max(0, Date.now() - Number(nonce)));
         }

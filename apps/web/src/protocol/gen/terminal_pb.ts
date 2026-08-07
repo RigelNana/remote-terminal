@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file terminal.proto.
  */
 export const file_terminal: GenFile /*@__PURE__*/ = fileDesc(
-  "Cg50ZXJtaW5hbC5wcm90bxIJcmVtb3RlLnYxItwECghFbnZlbG9wZRIPCgd2ZXJzaW9uGAEgASgNEg8KB3Nlc3Npb24YAiABKAkSIQoFaGVsbG8YCiABKAsyEC5yZW1vdGUudjEuSGVsbG9IABIfCgRvcGVuGAsgASgLMg8ucmVtb3RlLnYxLk9wZW5IABIhCgVyZWFkeRgMIAEoCzIQLnJlbW90ZS52MS5SZWFkeUgAEiMKBmF0dGFjaBgNIAEoCzIRLnJlbW90ZS52MS5BdHRhY2hIABIhCgVpbnB1dBgOIAEoCzIQLnJlbW90ZS52MS5JbnB1dEgAEiMKBm91dHB1dBgPIAEoCzIRLnJlbW90ZS52MS5PdXRwdXRIABIjCgZyZXNpemUYECABKAsyES5yZW1vdGUudjEuUmVzaXplSAASHQoDYWNrGBEgASgLMg4ucmVtb3RlLnYxLkFja0gAEh0KA2dhcBgSIAEoCzIOLnJlbW90ZS52MS5HYXBIABIfCgRyb2xlGBMgASgLMg8ucmVtb3RlLnYxLlJvbGVIABIfCgRleGl0GBQgASgLMg8ucmVtb3RlLnYxLkV4aXRIABIlCgdmYWlsdXJlGBUgASgLMhIucmVtb3RlLnYxLkZhaWx1cmVIABIfCgRwaW5nGBYgASgLMg8ucmVtb3RlLnYxLlBpbmdIABIfCgRwb25nGBcgASgLMg8ucmVtb3RlLnYxLlBvbmdIABIfCgRraWxsGBggASgLMg8ucmVtb3RlLnYxLktpbGxIABIjCgZkZXRhY2gYGSABKAsyES5yZW1vdGUudjEuRGV0YWNoSABCBgoEYm9keSI/CgdQcm9maWxlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFc2hlbGwYAyABKAkSCwoDY3dkGAQgASgJIl4KBUhlbGxvEg4KBmRldmljZRgBIAEoCRINCgVhZ2VudBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIkCghwcm9maWxlcxgEIAMoCzISLnJlbW90ZS52MS5Qcm9maWxlIk0KBFNpemUSDAoEY29scxgBIAEoDRIMCgRyb3dzGAIgASgNEhMKC3BpeGVsX3dpZHRoGAMgASgNEhQKDHBpeGVsX2hlaWdodBgEIAEoDSJTCgRPcGVuEg8KB3Byb2ZpbGUYASABKAkSCwoDY3dkGAIgASgJEh0KBHNpemUYAyABKAsyDy5yZW1vdGUudjEuU2l6ZRIOCgZ0aWNrZXQYBCABKAkiUwoFUmVhZHkSDwoHcHJvZmlsZRgBIAEoCRIdCgRzaXplGAIgASgLMg8ucmVtb3RlLnYxLlNpemUSDQoFc3RhcnQYAyABKAQSCwoDcGlkGAQgASgNIjcKBkF0dGFjaBIOCgZhdHRhY2gYASABKAkSDAoEZnJvbRgCIAEoBBIPCgdjb250cm9sGAMgASgIIhgKBkRldGFjaBIOCgZhdHRhY2gYASABKAkiNwoFSW5wdXQSDgoGYXR0YWNoGAEgASgJEhAKCHNlcXVlbmNlGAIgASgEEgwKBGRhdGEYAyABKAwiQgoGT3V0cHV0Eg4KBnRhcmdldBgBIAEoCRINCgVzdGFydBgCIAEoBBILCgNlbmQYAyABKAQSDAoEZGF0YRgEIAEoDCI3CgZSZXNpemUSDgoGYXR0YWNoGAEgASgJEh0KBHNpemUYAiABKAsyDy5yZW1vdGUudjEuU2l6ZSIiCgNBY2sSDgoGYXR0YWNoGAEgASgJEgsKA2VuZBgCIAEoBCJHCgNHYXASDgoGdGFyZ2V0GAEgASgJEhcKD2F2YWlsYWJsZV9zdGFydBgCIAEoBBIXCg9yZXF1ZXN0ZWRfc3RhcnQYAyABKAQiPgoEUm9sZRIOCgZhdHRhY2gYASABKAkSDwoHY29udHJvbBgCIAEoCBIVCg1sZWFzZV9leHBpcmVzGAMgASgDIkEKBEV4aXQSDAoEY29kZRgBIAEoBRIOCgZzaWduYWwYAiABKAkSDgoGcmVhc29uGAMgASgJEgsKA2VuZBgEIAEoBCI6CgdGYWlsdXJlEgwKBGNvZGUYASABKAkSEQoJcmV0cnlhYmxlGAIgASgIEg4KBmRldGFpbBgDIAEoCSIVCgRQaW5nEg0KBW5vbmNlGAEgASgEIhUKBFBvbmcSDQoFbm9uY2UYASABKAQiFQoES2lsbBINCgVmb3JjZRgBIAEoCGIGcHJvdG8z",
+  "Cg50ZXJtaW5hbC5wcm90bxIJcmVtb3RlLnYxIoUFCghFbnZlbG9wZRIPCgd2ZXJzaW9uGAEgASgNEg8KB3Nlc3Npb24YAiABKAkSIQoFaGVsbG8YCiABKAsyEC5yZW1vdGUudjEuSGVsbG9IABIfCgRvcGVuGAsgASgLMg8ucmVtb3RlLnYxLk9wZW5IABIhCgVyZWFkeRgMIAEoCzIQLnJlbW90ZS52MS5SZWFkeUgAEiMKBmF0dGFjaBgNIAEoCzIRLnJlbW90ZS52MS5BdHRhY2hIABIhCgVpbnB1dBgOIAEoCzIQLnJlbW90ZS52MS5JbnB1dEgAEiMKBm91dHB1dBgPIAEoCzIRLnJlbW90ZS52MS5PdXRwdXRIABIjCgZyZXNpemUYECABKAsyES5yZW1vdGUudjEuUmVzaXplSAASHQoDYWNrGBEgASgLMg4ucmVtb3RlLnYxLkFja0gAEh0KA2dhcBgSIAEoCzIOLnJlbW90ZS52MS5HYXBIABIfCgRyb2xlGBMgASgLMg8ucmVtb3RlLnYxLlJvbGVIABIfCgRleGl0GBQgASgLMg8ucmVtb3RlLnYxLkV4aXRIABIlCgdmYWlsdXJlGBUgASgLMhIucmVtb3RlLnYxLkZhaWx1cmVIABIfCgRwaW5nGBYgASgLMg8ucmVtb3RlLnYxLlBpbmdIABIfCgRwb25nGBcgASgLMg8ucmVtb3RlLnYxLlBvbmdIABIfCgRraWxsGBggASgLMg8ucmVtb3RlLnYxLktpbGxIABIjCgZkZXRhY2gYGSABKAsyES5yZW1vdGUudjEuRGV0YWNoSAASJwoIc25hcHNob3QYGiABKAsyEy5yZW1vdGUudjEuU25hcHNob3RIAEIGCgRib2R5Ij8KB1Byb2ZpbGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVzaGVsbBgDIAEoCRILCgNjd2QYBCABKAkiXgoFSGVsbG8SDgoGZGV2aWNlGAEgASgJEg0KBWFnZW50GAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEiQKCHByb2ZpbGVzGAQgAygLMhIucmVtb3RlLnYxLlByb2ZpbGUiTQoEU2l6ZRIMCgRjb2xzGAEgASgNEgwKBHJvd3MYAiABKA0SEwoLcGl4ZWxfd2lkdGgYAyABKA0SFAoMcGl4ZWxfaGVpZ2h0GAQgASgNIlMKBE9wZW4SDwoHcHJvZmlsZRgBIAEoCRILCgNjd2QYAiABKAkSHQoEc2l6ZRgDIAEoCzIPLnJlbW90ZS52MS5TaXplEg4KBnRpY2tldBgEIAEoCSJTCgVSZWFkeRIPCgdwcm9maWxlGAEgASgJEh0KBHNpemUYAiABKAsyDy5yZW1vdGUudjEuU2l6ZRINCgVzdGFydBgDIAEoBBILCgNwaWQYBCABKA0iLwoGQXR0YWNoEg4KBmF0dGFjaBgBIAEoCRIPCgdjb250cm9sGAMgASgISgQIAhADIhgKBkRldGFjaBIOCgZhdHRhY2gYASABKAkiNwoFSW5wdXQSDgoGYXR0YWNoGAEgASgJEhAKCHNlcXVlbmNlGAIgASgEEgwKBGRhdGEYAyABKAwiQgoGT3V0cHV0Eg4KBnRhcmdldBgBIAEoCRINCgVzdGFydBgCIAEoBBILCgNlbmQYAyABKAQSDAoEZGF0YRgEIAEoDCI1CghTbmFwc2hvdBIOCgZ0YXJnZXQYASABKAkSCwoDZW5kGAIgASgEEgwKBGRhdGEYAyABKAwiNwoGUmVzaXplEg4KBmF0dGFjaBgBIAEoCRIdCgRzaXplGAIgASgLMg8ucmVtb3RlLnYxLlNpemUiIgoDQWNrEg4KBmF0dGFjaBgBIAEoCRILCgNlbmQYAiABKAQiRwoDR2FwEg4KBnRhcmdldBgBIAEoCRIXCg9hdmFpbGFibGVfc3RhcnQYAiABKAQSFwoPcmVxdWVzdGVkX3N0YXJ0GAMgASgEIj4KBFJvbGUSDgoGYXR0YWNoGAEgASgJEg8KB2NvbnRyb2wYAiABKAgSFQoNbGVhc2VfZXhwaXJlcxgDIAEoAyJBCgRFeGl0EgwKBGNvZGUYASABKAUSDgoGc2lnbmFsGAIgASgJEg4KBnJlYXNvbhgDIAEoCRILCgNlbmQYBCABKAQiOgoHRmFpbHVyZRIMCgRjb2RlGAEgASgJEhEKCXJldHJ5YWJsZRgCIAEoCBIOCgZkZXRhaWwYAyABKAkiFQoEUGluZxINCgVub25jZRgBIAEoBCIVCgRQb25nEg0KBW5vbmNlGAEgASgEIhUKBEtpbGwSDQoFZm9yY2UYASABKAhiBnByb3RvMw",
 );
 
 /**
@@ -142,6 +142,13 @@ export type Envelope = Message<"remote.v1.Envelope"> & {
          */
         value: Detach;
         case: "detach";
+      }
+    | {
+        /**
+         * @generated from field: remote.v1.Snapshot snapshot = 26;
+         */
+        value: Snapshot;
+        case: "snapshot";
       }
     | { case: undefined; value?: undefined };
 };
@@ -317,11 +324,6 @@ export type Attach = Message<"remote.v1.Attach"> & {
   attach: string;
 
   /**
-   * @generated from field: uint64 from = 2;
-   */
-  from: bigint;
-
-  /**
    * @generated from field: bool control = 3;
    */
   control: boolean;
@@ -407,6 +409,32 @@ export type Output = Message<"remote.v1.Output"> & {
 export const OutputSchema: GenMessage<Output> /*@__PURE__*/ = messageDesc(file_terminal, 9);
 
 /**
+ * @generated from message remote.v1.Snapshot
+ */
+export type Snapshot = Message<"remote.v1.Snapshot"> & {
+  /**
+   * @generated from field: string target = 1;
+   */
+  target: string;
+
+  /**
+   * @generated from field: uint64 end = 2;
+   */
+  end: bigint;
+
+  /**
+   * @generated from field: bytes data = 3;
+   */
+  data: Uint8Array;
+};
+
+/**
+ * Describes the message remote.v1.Snapshot.
+ * Use `create(SnapshotSchema)` to create a new message.
+ */
+export const SnapshotSchema: GenMessage<Snapshot> /*@__PURE__*/ = messageDesc(file_terminal, 10);
+
+/**
  * @generated from message remote.v1.Resize
  */
 export type Resize = Message<"remote.v1.Resize"> & {
@@ -425,7 +453,7 @@ export type Resize = Message<"remote.v1.Resize"> & {
  * Describes the message remote.v1.Resize.
  * Use `create(ResizeSchema)` to create a new message.
  */
-export const ResizeSchema: GenMessage<Resize> /*@__PURE__*/ = messageDesc(file_terminal, 10);
+export const ResizeSchema: GenMessage<Resize> /*@__PURE__*/ = messageDesc(file_terminal, 11);
 
 /**
  * @generated from message remote.v1.Ack
@@ -446,7 +474,7 @@ export type Ack = Message<"remote.v1.Ack"> & {
  * Describes the message remote.v1.Ack.
  * Use `create(AckSchema)` to create a new message.
  */
-export const AckSchema: GenMessage<Ack> /*@__PURE__*/ = messageDesc(file_terminal, 11);
+export const AckSchema: GenMessage<Ack> /*@__PURE__*/ = messageDesc(file_terminal, 12);
 
 /**
  * @generated from message remote.v1.Gap
@@ -472,7 +500,7 @@ export type Gap = Message<"remote.v1.Gap"> & {
  * Describes the message remote.v1.Gap.
  * Use `create(GapSchema)` to create a new message.
  */
-export const GapSchema: GenMessage<Gap> /*@__PURE__*/ = messageDesc(file_terminal, 12);
+export const GapSchema: GenMessage<Gap> /*@__PURE__*/ = messageDesc(file_terminal, 13);
 
 /**
  * @generated from message remote.v1.Role
@@ -498,7 +526,7 @@ export type Role = Message<"remote.v1.Role"> & {
  * Describes the message remote.v1.Role.
  * Use `create(RoleSchema)` to create a new message.
  */
-export const RoleSchema: GenMessage<Role> /*@__PURE__*/ = messageDesc(file_terminal, 13);
+export const RoleSchema: GenMessage<Role> /*@__PURE__*/ = messageDesc(file_terminal, 14);
 
 /**
  * @generated from message remote.v1.Exit
@@ -529,7 +557,7 @@ export type Exit = Message<"remote.v1.Exit"> & {
  * Describes the message remote.v1.Exit.
  * Use `create(ExitSchema)` to create a new message.
  */
-export const ExitSchema: GenMessage<Exit> /*@__PURE__*/ = messageDesc(file_terminal, 14);
+export const ExitSchema: GenMessage<Exit> /*@__PURE__*/ = messageDesc(file_terminal, 15);
 
 /**
  * @generated from message remote.v1.Failure
@@ -555,7 +583,7 @@ export type Failure = Message<"remote.v1.Failure"> & {
  * Describes the message remote.v1.Failure.
  * Use `create(FailureSchema)` to create a new message.
  */
-export const FailureSchema: GenMessage<Failure> /*@__PURE__*/ = messageDesc(file_terminal, 15);
+export const FailureSchema: GenMessage<Failure> /*@__PURE__*/ = messageDesc(file_terminal, 16);
 
 /**
  * @generated from message remote.v1.Ping
@@ -571,7 +599,7 @@ export type Ping = Message<"remote.v1.Ping"> & {
  * Describes the message remote.v1.Ping.
  * Use `create(PingSchema)` to create a new message.
  */
-export const PingSchema: GenMessage<Ping> /*@__PURE__*/ = messageDesc(file_terminal, 16);
+export const PingSchema: GenMessage<Ping> /*@__PURE__*/ = messageDesc(file_terminal, 17);
 
 /**
  * @generated from message remote.v1.Pong
@@ -587,7 +615,7 @@ export type Pong = Message<"remote.v1.Pong"> & {
  * Describes the message remote.v1.Pong.
  * Use `create(PongSchema)` to create a new message.
  */
-export const PongSchema: GenMessage<Pong> /*@__PURE__*/ = messageDesc(file_terminal, 17);
+export const PongSchema: GenMessage<Pong> /*@__PURE__*/ = messageDesc(file_terminal, 18);
 
 /**
  * @generated from message remote.v1.Kill
@@ -603,4 +631,4 @@ export type Kill = Message<"remote.v1.Kill"> & {
  * Describes the message remote.v1.Kill.
  * Use `create(KillSchema)` to create a new message.
  */
-export const KillSchema: GenMessage<Kill> /*@__PURE__*/ = messageDesc(file_terminal, 18);
+export const KillSchema: GenMessage<Kill> /*@__PURE__*/ = messageDesc(file_terminal, 19);

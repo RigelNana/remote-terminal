@@ -175,7 +175,7 @@ async fn shell_round_trip_through_relay() -> Result<(), Box<dyn Error>> {
         .post(origin.join(&format!("/v1/sessions/{session_id}/attach"))?)
         .header(COOKIE, &cookies)
         .header("x-csrf-token", CSRF_TOKEN)
-        .json(&json!({ "from": 0 }))
+        .json(&json!({}))
         .send()
         .await?;
     assert_eq!(
@@ -211,12 +211,28 @@ async fn shell_round_trip_through_relay() -> Result<(), Box<dyn Error>> {
     };
     let role = Envelope::decode_frame(&first)?;
     assert!(matches!(role.body, Some(Body::Role(_))));
+    let snapshot = time::timeout(Duration::from_secs(5), async {
+        loop {
+            let message = terminal.next().await.ok_or("terminal websocket closed")??;
+            let Message::Binary(bytes) = message else {
+                continue;
+            };
+            let frame = Envelope::decode_frame(&bytes)?;
+            if let Some(Body::Snapshot(snapshot)) = frame.body {
+                break Ok::<_, Box<dyn Error>>(snapshot);
+            }
+        }
+    })
+    .await??;
+    assert_eq!(snapshot.target, attach);
     let input = Envelope::frame(
         session_id.to_string(),
         Body::Input(Input {
             attach: attach.into(),
             sequence: 1,
-            data: bytes::Bytes::from_static(b"printf '__REMOTE_TERMINAL_E2E_OK__\\n'; exit\n"),
+            data: bytes::Bytes::from_static(
+                b"i=1; while [ \"$i\" -le 2000 ]; do printf 'history-%04d\\n' \"$i\"; i=$((i + 1)); done; printf '\\137\\137REMOTE_TERMINAL_E2E_OK\\137\\137\\n'\n",
+            ),
         }),
     );
     terminal
@@ -258,6 +274,84 @@ async fn shell_round_trip_through_relay() -> Result<(), Box<dyn Error>> {
         "terminal output did not contain sentinel: {}",
         String::from_utf8_lossy(&output)
     );
+
+    terminal.close(None).await?;
+    let response = client
+        .post(origin.join(&format!("/v1/sessions/{session_id}/attach"))?)
+        .header(COOKIE, &cookies)
+        .header("x-csrf-token", CSRF_TOKEN)
+        .json(&json!({}))
+        .send()
+        .await?;
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let grant: Value = response.json().await?;
+    let reattach = grant["attach"].as_str().ok_or("missing reattachment ID")?;
+    let mut websocket = Url::parse(grant["url"].as_str().ok_or("missing reattachment URL")?)?;
+    websocket.query_pairs_mut().append_pair(
+        "ticket",
+        grant["ticket"]
+            .as_str()
+            .ok_or("missing reattachment ticket")?,
+    );
+    let mut request = websocket.as_str().into_client_request()?;
+    request.headers_mut().insert(COOKIE, cookies.parse()?);
+    request
+        .headers_mut()
+        .insert(ORIGIN, origin.as_str().parse()?);
+    request
+        .headers_mut()
+        .insert(SEC_WEBSOCKET_PROTOCOL, "remote-terminal.v1".parse()?);
+    let (mut terminal, _) = connect_async(request).await?;
+
+    let current = time::timeout(Duration::from_secs(5), async {
+        let mut targeted_history_bytes = 0;
+        loop {
+            let Some(message) = terminal.next().await else {
+                break Err::<_, Box<dyn Error>>("terminal websocket closed before snapshot".into());
+            };
+            let Message::Binary(bytes) = message? else {
+                continue;
+            };
+            let frame = Envelope::decode_frame(&bytes)?;
+            match frame.body {
+                Some(Body::Output(chunk)) if chunk.target == reattach => {
+                    targeted_history_bytes += chunk.data.len();
+                }
+                Some(Body::Snapshot(snapshot)) => {
+                    break Ok::<_, Box<dyn Error>>((snapshot, targeted_history_bytes));
+                }
+                _ => {}
+            }
+        }
+    })
+    .await??;
+    assert_eq!(current.0.target, reattach);
+    assert_eq!(current.1, 0, "reattachment replayed targeted journal bytes");
+    assert!(current.0.data.len() < output.len());
+    assert!(
+        !current
+            .0
+            .data
+            .windows(b"history-0001".len())
+            .any(|window| window == b"history-0001")
+    );
+    assert!(
+        current
+            .0
+            .data
+            .windows(SENTINEL.len())
+            .any(|window| window == SENTINEL)
+    );
+
+    let exit = Envelope::frame(
+        session_id.to_string(),
+        Body::Input(Input {
+            attach: reattach.into(),
+            sequence: 1,
+            data: bytes::Bytes::from_static(b"exit\n"),
+        }),
+    );
+    terminal.send(Message::Binary(exit.encode_frame()?)).await?;
 
     time::timeout(Duration::from_secs(10), async {
         loop {

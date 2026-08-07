@@ -23,7 +23,6 @@ const SUMMARY_MS = 250;
 const MAX_WEBGL = 8;
 const MAX_TITLE = 64;
 const TOUCH_SCROLL_START_PX = 8;
-const INITIAL_REPLAY_MAX_MS = 5_000;
 
 const activeRenderers = new Set<WebglAddon>();
 
@@ -47,8 +46,7 @@ export interface TerminalSettings {
 
 export interface TerminalOptions {
   session: string;
-  reissue: (from: number) => Promise<AttachGrant>;
-  from: number;
+  reissue: () => Promise<AttachGrant>;
   settings: TerminalSettings;
   theme: "dark" | "light" | "hc";
   events: TerminalEvents;
@@ -93,11 +91,6 @@ export class TerminalController {
   private lastRows = 0;
   private inputModifiers: TerminalModifiers = NO_TERMINAL_MODIFIERS;
   private onModifiersConsumed: (() => void) | null = null;
-  private replayMaxTimer: ReturnType<typeof setTimeout> | undefined;
-  private replayPendingWrites = 0;
-  private replaySawOutput = false;
-  private replayBoundaryReached = false;
-  private replayReady = false;
   private readonly touchAbort = new AbortController();
   private touchScroll:
     | {
@@ -153,27 +146,21 @@ export class TerminalController {
         }
         this.emit();
       },
-      onWrite: (bytes, ackEnd) => {
-        this.offset = Math.max(this.offset, ackEnd);
-        const initialReplay = !this.replayReady;
-        if (initialReplay) {
-          this.replaySawOutput = true;
-          this.replayPendingWrites += 1;
-        }
+      onSnapshot: (bytes, end) => {
+        this.offset = Math.max(this.offset, end);
+        this.term.reset();
         this.term.write(bytes, () => {
-          this.attachment.consumed(ackEnd);
-          if (!initialReplay || this.replayReady) return;
-          this.replayPendingWrites = Math.max(0, this.replayPendingWrites - 1);
-          if (this.replayPendingWrites > 0) return;
-          if (this.replayBoundaryReached) this.finishInitialReplay();
+          this.attachment.consumed(end);
+          this.container.dataset.replay = "ready";
+          this.container.setAttribute("aria-busy", "false");
+          this.term.refresh(0, this.term.rows - 1);
         });
       },
-      onReplayComplete: () => {
-        this.replayBoundaryReached = true;
-        if (this.replayPendingWrites === 0) this.finishInitialReplay();
+      onWrite: (bytes, ackEnd) => {
+        this.offset = Math.max(this.offset, ackEnd);
+        this.term.write(bytes, () => this.attachment.consumed(ackEnd));
       },
       onGap: (availableStart) => {
-        if (!this.replayReady) this.replaySawOutput = true;
         this.gapFrom = availableStart;
         this.term.write("\r\n");
         this.term.writeln(
@@ -252,10 +239,6 @@ export class TerminalController {
     });
 
     this.summaryTimer = setInterval(() => this.emit(), SUMMARY_MS);
-    this.replayMaxTimer = setTimeout(() => {
-      this.replayBoundaryReached = true;
-      if (this.replayPendingWrites === 0) this.finishInitialReplay();
-    }, INITIAL_REPLAY_MAX_MS);
 
     void this.attachment.start();
   }
@@ -360,7 +343,6 @@ export class TerminalController {
     this.touchAbort.abort();
     this.observer?.disconnect();
     clearInterval(this.summaryTimer);
-    clearTimeout(this.replayMaxTimer);
     this.attachment.stop();
     this.term.dispose();
   }
@@ -369,16 +351,6 @@ export class TerminalController {
     if (!this.disposed) this.events.onSummary(this.snapshot());
   }
 
-  private finishInitialReplay(): void {
-    if (this.disposed || this.replayReady || this.replayPendingWrites > 0) return;
-    this.replayReady = true;
-    clearTimeout(this.replayMaxTimer);
-    this.replayMaxTimer = undefined;
-    if (this.replaySawOutput) this.term.clear();
-    this.container.dataset.replay = "ready";
-    this.container.setAttribute("aria-busy", "false");
-    this.term.refresh(0, this.term.rows - 1);
-  }
   private onTouchPointerDown(event: PointerEvent): void {
     if (
       event.pointerType !== "touch" ||

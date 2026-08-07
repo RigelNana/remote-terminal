@@ -112,8 +112,7 @@ export const TerminalView = forwardRef<TerminalHandle, TerminalViewProps>(functi
     if (!host) return;
     const controller = TerminalController.mount(host, {
       session,
-      from: 0,
-      reissue: async (from) => api.post(`/v1/sessions/${session}/attach`, { from }),
+      reissue: async () => api.post(`/v1/sessions/${session}/attach`, {}),
       settings: {
         fontSize: prefsRef.current.fontSize,
         fontFamily: terminalFontFamily(prefsRef.current.font),

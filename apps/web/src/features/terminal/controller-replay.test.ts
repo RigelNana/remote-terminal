@@ -6,14 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
 
 interface FakeAttachmentEvents {
+  onSnapshot: (bytes: Uint8Array, end: number) => void;
   onWrite: (bytes: Uint8Array, end: number) => void;
-  onReplayComplete: () => void;
 }
 
 const fakes = vi.hoisted(() => ({
   attachmentEvents: null as FakeAttachmentEvents | null,
   terminal: null as null | {
-    clear: Mock;
+    reset: Mock;
     writes: Uint8Array[];
   },
 }));
@@ -50,7 +50,7 @@ vi.mock("@xterm/xterm", () => ({
     options: Record<string, unknown>;
     cols = 80;
     rows = 24;
-    clear = vi.fn();
+    reset = vi.fn();
     writes: Uint8Array[] = [];
 
     constructor(options: Record<string, unknown>) {
@@ -79,11 +79,7 @@ vi.mock("@xterm/xterm", () => ({
 }));
 vi.mock("./attachment", () => ({
   Attachment: class {
-    constructor(
-      _session: string,
-      _reissue: unknown,
-      events: FakeAttachmentEvents,
-    ) {
+    constructor(_session: string, _reissue: unknown, events: FakeAttachmentEvents) {
       fakes.attachmentEvents = events;
     }
     async start() {}
@@ -96,7 +92,7 @@ vi.mock("./attachment", () => ({
 
 import { TerminalController } from "./controller";
 
-describe("TerminalController initial replay", () => {
+describe("TerminalController current-screen snapshot", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     fakes.attachmentEvents = null;
@@ -110,7 +106,7 @@ describe("TerminalController initial replay", () => {
     );
   });
 
-  it("conceals journal replay and removes its scrollback before revealing the current screen", () => {
+  it("reveals the Agent snapshot directly without replaying journal bytes", () => {
     const host = document.createElement("div");
     Object.defineProperties(host, {
       clientWidth: { value: 390 },
@@ -118,7 +114,6 @@ describe("TerminalController initial replay", () => {
     });
     const controller = TerminalController.mount(host, {
       session: "session-a",
-      from: 0,
       reissue: vi.fn(),
       settings: { fontSize: 14, lineHeight: 1.2, fontFamily: "monospace", scrollback: 5000 },
       theme: "dark",
@@ -131,13 +126,11 @@ describe("TerminalController initial replay", () => {
     });
 
     expect(host.dataset.replay).toBe("catching-up");
-    fakes.attachmentEvents?.onWrite(new TextEncoder().encode("old log\r\ncurrent prompt$ "), 25);
-    expect(fakes.terminal?.writes).toHaveLength(1);
-    expect(fakes.terminal?.clear).not.toHaveBeenCalled();
+    const screen = new TextEncoder().encode("current prompt$ ");
+    fakes.attachmentEvents?.onSnapshot(screen, 25);
 
-    fakes.attachmentEvents?.onReplayComplete();
-
-    expect(fakes.terminal?.clear).toHaveBeenCalledOnce();
+    expect(fakes.terminal?.reset).toHaveBeenCalledOnce();
+    expect(fakes.terminal?.writes).toEqual([screen]);
     expect(host.dataset.replay).toBe("ready");
     controller.release();
   });

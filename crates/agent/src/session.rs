@@ -17,7 +17,9 @@ use parking_lot::Mutex;
 use portable_pty::{Child, ChildKiller, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use remote_proto::{
     id::{AttachId, SessionId},
-    wire::{Ack, Envelope, Exit, Failure, Gap, Open, Output, Pong, Ready, Size, envelope::Body},
+    wire::{
+        Ack, Envelope, Exit, Failure, Open, Output, Pong, Ready, Size, Snapshot, envelope::Body,
+    },
 };
 use tokio::{
     sync::{Notify, broadcast, mpsc, oneshot},
@@ -68,7 +70,7 @@ pub struct Session {
     killer: Arc<Mutex<Box<dyn ChildKiller + Send + Sync>>>,
     size: Mutex<Size>,
     input: mpsc::Sender<Bytes>,
-    journal: Mutex<Journal>,
+    terminal: Mutex<TerminalState>,
     live: broadcast::Sender<Chunk>,
     attachments: DashMap<AttachId, u64>,
     ack: Notify,
@@ -76,6 +78,40 @@ pub struct Session {
     connected: Notify,
     cancel: CancellationToken,
     ticket: Mutex<Option<String>>,
+}
+
+struct TerminalState {
+    journal: Journal,
+    parser: vt100::Parser,
+}
+
+impl TerminalState {
+    fn new(journal_bytes: usize, size: &Size) -> Result<Self> {
+        let size = pty_size(size)?;
+        Ok(Self {
+            journal: Journal::new(journal_bytes),
+            parser: vt100::Parser::new(size.rows, size.cols, 0),
+        })
+    }
+
+    fn push(&mut self, bytes: Bytes) -> Chunk {
+        self.parser.process(&bytes);
+        self.journal.push(bytes)
+    }
+
+    fn snapshot(&self, target: String) -> Snapshot {
+        Snapshot {
+            target,
+            end: self.journal.end(),
+            data: Bytes::from(self.parser.screen().state_formatted()),
+        }
+    }
+
+    fn resize(&mut self, size: &Size) -> Result<()> {
+        let size = pty_size(size)?;
+        self.parser.screen_mut().set_size(size.rows, size.cols);
+        Ok(())
+    }
 }
 
 impl Sessions {
@@ -132,7 +168,7 @@ impl Sessions {
             killer: Arc::new(Mutex::new(spawned.killer)),
             size: Mutex::new(ready_size),
             input: input_tx,
-            journal: Mutex::new(Journal::new(self.config.journal_bytes)),
+            terminal: Mutex::new(TerminalState::new(self.config.journal_bytes, &size)?),
             live,
             attachments: DashMap::new(),
             ack: Notify::new(),
@@ -188,7 +224,7 @@ impl Session {
         Ready {
             profile: self.profile.clone(),
             size: Some(*self.size.lock()),
-            start: self.journal.lock().replay(0).available_start,
+            start: self.terminal.lock().journal.end(),
             pid: self.pid,
         }
     }
@@ -235,7 +271,7 @@ impl Session {
                 } else {
                     "process_failed".into()
                 },
-                end: self.journal.lock().end(),
+                end: self.terminal.lock().journal.end(),
             }),
         );
         let _ = events.send(frame).await;
@@ -260,7 +296,7 @@ impl Session {
             let Some(bytes) = bytes else {
                 return;
             };
-            let chunk = self.journal.lock().push(bytes);
+            let chunk = self.terminal.lock().push(bytes);
             let _ = self.live.send(chunk);
         }
     }
@@ -269,7 +305,7 @@ impl Session {
         if self.attachments.is_empty() {
             return false;
         }
-        let end = self.journal.lock().end();
+        let end = self.terminal.lock().journal.end();
         self.attachments
             .iter()
             .any(|entry| end.saturating_sub(*entry.value()) > ACK_WINDOW)
@@ -389,25 +425,13 @@ impl Session {
         match frame.body {
             Some(Body::Attach(attach)) => {
                 let id = AttachId::from_str(&attach.attach).map_err(|_| Error::Authentication)?;
-                self.attachments.insert(id, attach.from);
-                let replay = self.journal.lock().replay(attach.from);
-                if replay.requested_start < replay.available_start {
-                    send(
-                        sink,
-                        Envelope::frame(
-                            self.id.to_string(),
-                            Body::Gap(Gap {
-                                target: id.to_string(),
-                                available_start: replay.available_start,
-                                requested_start: replay.requested_start,
-                            }),
-                        ),
-                    )
-                    .await?;
-                }
-                for chunk in replay.chunks {
-                    send(sink, output(self.id, id.to_string(), chunk)).await?;
-                }
+                let snapshot = self.terminal.lock().snapshot(id.to_string());
+                self.attachments.insert(id, snapshot.end);
+                send(
+                    sink,
+                    Envelope::frame(self.id.to_string(), Body::Snapshot(snapshot)),
+                )
+                .await?;
             }
             Some(Body::Detach(detach)) => {
                 let id = AttachId::from_str(&detach.attach).map_err(|_| Error::Authentication)?;
@@ -458,6 +482,7 @@ impl Session {
             .map_err(|error| Error::Task(error.to_string()))?
             .map_err(|error| Error::Pty(error.to_string()))?;
         *self.size.lock() = size;
+        self.terminal.lock().resize(&size)?;
         Ok(())
     }
 
@@ -596,4 +621,41 @@ where
 {
     sink.send(Message::Binary(frame.encode_frame()?)).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn snapshot_contains_only_the_visible_screen_at_the_current_offset() {
+        let size = Size {
+            cols: 20,
+            rows: 4,
+            pixel_width: 0,
+            pixel_height: 0,
+        };
+        let mut terminal = TerminalState::new(1024 * 1024, &size).unwrap();
+        let journal = (1..=80)
+            .map(|line| format!("line {line:03}\r\n"))
+            .collect::<String>();
+        terminal.push(Bytes::from(journal.clone()));
+
+        let snapshot = terminal.snapshot("attachment".into());
+
+        assert_eq!(snapshot.end, journal.len() as u64);
+        assert!(snapshot.data.len() < journal.len());
+        assert!(!snapshot.data.windows(8).any(|bytes| bytes == b"line 001"));
+
+        let mut restored = vt100::Parser::new(4, 20, 0);
+        restored.process(&snapshot.data);
+        assert_eq!(
+            restored.screen().contents(),
+            terminal.parser.screen().contents()
+        );
+        assert_eq!(
+            restored.screen().cursor_position(),
+            terminal.parser.screen().cursor_position()
+        );
+    }
 }

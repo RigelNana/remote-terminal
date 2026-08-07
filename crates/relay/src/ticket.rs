@@ -22,7 +22,6 @@ pub struct Claim {
     pub device: DeviceId,
     pub session: SessionId,
     pub attach: Option<AttachId>,
-    pub from: u64,
     pub expires_at: i64,
 }
 

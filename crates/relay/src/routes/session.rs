@@ -91,7 +91,6 @@ pub async fn create(
             device: request.device,
             session: session.id,
             attach: None,
-            from: 0,
             expires_at: 0,
         },
         app.config.ticket_seconds,
@@ -136,10 +135,7 @@ pub async fn get(
 }
 
 #[derive(Deserialize)]
-pub struct AttachRequest {
-    #[serde(default)]
-    from: u64,
-}
+pub struct AttachRequest {}
 
 #[derive(Serialize)]
 pub struct AttachGrant {
@@ -153,7 +149,7 @@ pub async fn grant(
     principal: Principal,
     headers: HeaderMap,
     Path(id): Path<SessionId>,
-    Json(request): Json<AttachRequest>,
+    Json(_request): Json<AttachRequest>,
 ) -> Result<Json<AttachGrant>> {
     principal.csrf(&headers)?;
     let session = app.store.session(principal.user.id, id).await?;
@@ -168,7 +164,6 @@ pub async fn grant(
             device: session.device,
             session: id,
             attach: Some(attach),
-            from: request.from,
             expires_at: 0,
         },
         app.config.ticket_seconds,
@@ -212,7 +207,7 @@ pub async fn attach(
         .max_message_size(MAX_FRAME)
         .max_frame_size(MAX_FRAME)
         .protocols([PROTOCOL])
-        .on_upgrade(move |socket| browser_socket(link, attach, claim.from, socket)))
+        .on_upgrade(move |socket| browser_socket(link, attach, socket)))
 }
 
 #[derive(Deserialize)]
@@ -263,7 +258,7 @@ pub async fn stop(
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 
-async fn browser_socket(link: Arc<SessionLink>, attach: AttachId, from: u64, socket: WebSocket) {
+async fn browser_socket(link: Arc<SessionLink>, attach: AttachId, socket: WebSocket) {
     let control = link.acquire(attach);
     let (mut sink, mut stream) = socket.split();
     let mut output = link.subscribe();
@@ -283,7 +278,6 @@ async fn browser_socket(link: Arc<SessionLink>, attach: AttachId, from: u64, soc
         link.id.to_string(),
         Body::Attach(Attach {
             attach: attach.to_string(),
-            from,
             control,
         }),
     );
@@ -390,6 +384,7 @@ fn visible(bytes: &[u8], attach: AttachId) -> bool {
     };
     let target = match frame.body {
         Some(Body::Output(output)) => output.target,
+        Some(Body::Snapshot(snapshot)) => snapshot.target,
         Some(Body::Gap(gap)) => gap.target,
         Some(Body::Role(role)) => role.attach,
         _ => String::new(),

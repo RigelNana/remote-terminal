@@ -23,6 +23,7 @@ message Envelope {
     Pong pong = 23;
     Kill kill = 24;
     Detach detach = 25;
+    Snapshot snapshot = 26;
   }
 }
 
@@ -60,10 +61,9 @@ message Ready {
   uint64 start = 3;
   uint32 pid = 4;
 }
-
 message Attach {
   string attach = 1;
-  uint64 from = 2;
+  reserved 2;
   bool control = 3;
 }
 message Detach {
@@ -82,6 +82,12 @@ message Output {
   uint64 start = 2;
   uint64 end = 3;
   bytes data = 4;
+}
+
+message Snapshot {
+  string target = 1;
+  uint64 end = 2;
+  bytes data = 3;
 }
 
 message Resize {

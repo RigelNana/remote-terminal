@@ -264,6 +264,7 @@ fn validate_data(bytes: &[u8], session: SessionId) -> Result<Envelope> {
     match frame.body {
         Some(
             Body::Output(_)
+            | Body::Snapshot(_)
             | Body::Gap(_)
             | Body::Exit(_)
             | Body::Failure(_)

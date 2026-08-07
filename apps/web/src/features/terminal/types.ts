@@ -42,5 +42,5 @@ export interface TerminalEvents {
 
 export interface AttachHandle {
   /** Re-issue a one-time attach ticket for this session. */
-  reissue: (from: number) => Promise<AttachGrant>;
+  reissue: () => Promise<AttachGrant>;
 }
