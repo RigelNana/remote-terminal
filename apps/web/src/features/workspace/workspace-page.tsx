@@ -41,7 +41,7 @@ export function WorkspacePage() {
             <div
               key={tab.id}
               className={`absolute inset-0 overflow-hidden ${
-                active ? "visible" : "invisible pointer-events-none"
+                active ? "" : "invisible pointer-events-none"
               }`}
               aria-hidden={!active}
               inert={!active}

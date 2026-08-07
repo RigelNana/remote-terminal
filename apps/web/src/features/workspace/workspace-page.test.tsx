@@ -51,7 +51,7 @@ describe("WorkspacePage terminal lifecycle", () => {
     act(() => {
       first = useWorkspace.getState().addTerminalTab("session-a", "A");
     });
-    render(<WorkspacePage />);
+    const { getByTestId } = render(<WorkspacePage />);
 
     act(() => {
       useWorkspace.getState().addTerminalTab("session-b", "B");
@@ -62,5 +62,8 @@ describe("WorkspacePage terminal lifecycle", () => {
 
     expect(lifecycle.mounts.get(first.id)).toBe(1);
     expect(lifecycle.unmounts.get(first.id) ?? 0).toBe(0);
+    expect(getByTestId(`terminal-${first.id}`).parentElement?.classList.contains("visible")).toBe(
+      false,
+    );
   });
 });

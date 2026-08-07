@@ -5,10 +5,13 @@ import "@/test/setup-local-storage";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
 
+interface FakeAttachmentEvents {
+  onWrite: (bytes: Uint8Array, end: number) => void;
+  onReplayComplete: () => void;
+}
+
 const fakes = vi.hoisted(() => ({
-  attachmentEvents: null as null | {
-    onWrite: (bytes: Uint8Array, end: number) => void;
-  },
+  attachmentEvents: null as FakeAttachmentEvents | null,
   terminal: null as null | {
     clear: Mock;
     writes: Uint8Array[];
@@ -79,7 +82,7 @@ vi.mock("./attachment", () => ({
     constructor(
       _session: string,
       _reissue: unknown,
-      events: { onWrite: (bytes: Uint8Array, end: number) => void },
+      events: FakeAttachmentEvents,
     ) {
       fakes.attachmentEvents = events;
     }
@@ -107,7 +110,7 @@ describe("TerminalController initial replay", () => {
     );
   });
 
-  it("conceals journal replay and removes its scrollback before revealing the current screen", async () => {
+  it("conceals journal replay and removes its scrollback before revealing the current screen", () => {
     const host = document.createElement("div");
     Object.defineProperties(host, {
       clientWidth: { value: 390 },
@@ -132,7 +135,7 @@ describe("TerminalController initial replay", () => {
     expect(fakes.terminal?.writes).toHaveLength(1);
     expect(fakes.terminal?.clear).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(200);
+    fakes.attachmentEvents?.onReplayComplete();
 
     expect(fakes.terminal?.clear).toHaveBeenCalledOnce();
     expect(host.dataset.replay).toBe("ready");

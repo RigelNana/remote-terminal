@@ -22,6 +22,8 @@ export interface AttachmentEvents {
   onRole: (role: Role) => void;
   /** Bytes for this terminal; `ackEnd` is the stream offset to acknowledge. */
   onWrite: (bytes: Uint8Array, ackEnd: number) => void;
+  /** The Agent processed the attach replay and every preceding output frame. */
+  onReplayComplete: () => void;
   onGap: (availableStart: number, requestedStart: number) => void;
   onExit: (exit: ExitInfo) => void;
   onFailure: (failure: FailureInfo) => void;
@@ -46,6 +48,7 @@ export class Attachment {
   private attempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private replayNonce: bigint | null = null;
   private bytesThisSecond = 0;
   private lastThroughput = Date.now();
   private readonly session: string;
@@ -72,6 +75,7 @@ export class Attachment {
     this.clearTimers();
     const ws = this.ws;
     this.ws = null;
+    this.replayNonce = null;
     if (ws && ws.readyState <= WebSocket.OPEN) {
       ws.close(1000, "client detach");
     }
@@ -153,6 +157,12 @@ export class Attachment {
         this.attempt = 0;
         this.events.onState("connected", 0);
         this.startTimers();
+        const replayNonce = BigInt(Date.now());
+        this.replayNonce = replayNonce;
+        this.sendFrame({
+          case: "ping",
+          value: create(PingSchema, { nonce: replayNonce }),
+        });
       });
       ws.addEventListener("message", (event) => this.onMessage(event));
       ws.addEventListener("close", () => this.onClosed());
@@ -230,6 +240,10 @@ export class Attachment {
       }
       case "pong": {
         const nonce = body.value.nonce;
+        if (nonce === this.replayNonce) {
+          this.replayNonce = null;
+          this.events.onReplayComplete();
+        }
         if (nonce > 0) {
           this.events.onRtt(Math.max(0, Date.now() - Number(nonce)));
         }
